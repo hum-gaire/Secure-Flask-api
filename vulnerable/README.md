@@ -1,74 +1,65 @@
-# Vulnerable Flask API
+# Secure Flask API
 
-**DO NOT USE IN PRODUCTION**
+A deliberately vulnerable → secure e-commerce API demonstrating OWASP Top 10 mitigations.
 
-This version intentionally demonstrates OWASP Top 10 vulnerabilities.
+## What's Inside
+| Version | Status | Key Issues |
+|---------|--------|-----------|
+| `vulnerable/` | ❌ Intentionally broken | SQL Injection, Broken Auth, Plaintext passwords |
+| `secure/` | ✅ Hardened | Parameterized queries, JWT, RBAC, Input validation |
 
-## Vulnerabilities Present
-- **A01: Broken Access Control** — No auth on `/order`, no authorization on `/admin/users`
-- **A03: Injection** — SQL injection in authentication and order endpoints
-- **A02: Cryptographic Failures** — Passwords stored in plaintext, weak session secret
-
-## Run
+## Quick Start
 ```bash
-pip install -r requirements.txt
-python app.py
+# Vulnerable (for testing)
+cd vulnerable && pip install -r requirements.txt && python app.py
 
-Exploit Examples:
-# SQL Injection login bypass
-curl -X POST http://localhost:5000/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin' OR '1'='1", "password": "anything"}'
+# Secure
+cd secure && pip install -r requirements.txt && python app.py
 
-# Access admin without auth
-curl http://localhost:5000/admin/users
+Security Tests
+pytest tests/ -v
 
-5. Click **"Commit new file"**
+CI/CD
+Bandit (SAST) on every push
+Safety (dependency scanning)
+pytest security test suite
+
+
+4. Commit message: `docs: update main README`
+5. Click **"Commit changes"**
 
 ---
 
-## Step 3: Create the Secure App (5 files)
+## What Your Repo Should Look Like Now
 
-Now create the fixed version. Same process: **Add file** → **Create new file** → type path → paste content → commit.
+Go to `https://github.com/hum-gaire/Secure-Flask-api` and confirm you see:
 
-### File 4: `secure/models.py`
+secure-flask-api/
+├── .github/
+│   └── workflows/
+│       └── security.yml
+├── secure/
+│   ├── app.py
+│   ├── auth.py
+│   ├── models.py
+│   ├── validators.py
+│   └── requirements.txt
+├── tests/
+│   ├── test_vulnerable.py
+│   └── test_secure.py
+├── vulnerable/
+│   ├── app.py
+│   ├── requirements.txt
+│   └── README.md
+└── README.md
 
-**Filename:** `secure/models.py`
 
-```python
-import sqlite3
-from werkzeug.security import generate_password_hash
+---
 
-def get_db():
- conn = sqlite3.connect("shop.db")
- conn.row_factory = sqlite3.Row
- return conn
+## Next: Check the Actions Tab
 
-def init_db():
- conn = get_db()
- cursor = conn.cursor()
- cursor.execute("""
-     CREATE TABLE IF NOT EXISTS users (
-         id INTEGER PRIMARY KEY,
-         username TEXT UNIQUE NOT NULL,
-         password_hash TEXT NOT NULL,
-         role TEXT DEFAULT 'user'
-     )
- """)
- cursor.execute("""
-     CREATE TABLE IF NOT EXISTS products (
-         id INTEGER PRIMARY KEY,
-         name TEXT NOT NULL,
-         price REAL NOT NULL
-     )
- """)
- cursor.execute("""
-     CREATE TABLE IF NOT EXISTS orders (
-         id INTEGER PRIMARY KEY,
-         user_id INTEGER NOT NULL,
-         product_id INTEGER NOT NULL,
-         quantity INTEGER NOT NULL,
-         FOREIGN KEY (user_id) REFERENCES users(id)
-     )
- """)
- conn.commit()
+1. Click the **Actions** tab at the top of your repo
+2. You should see a workflow run (or click **"Enable workflows"** if prompted)
+3. If it runs, you'll see green checkmarks ✅
+
+**If you get stuck on any specific file, tell me which one and I'll help.**
