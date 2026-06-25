@@ -1,0 +1,83 @@
+name: SAST - Static Application Security Testing
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run weekly to catch new vulnerabilities in dependencies
+    - cron: '0 0 * * 0'
+
+jobs:
+  bandit:
+    name: Bandit (Python Security Linter)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install Bandit
+        run: pip install bandit[sarif]
+      
+      - name: Run Bandit on vulnerable code
+        run: bandit -r vulnerable/ -f sarif -o bandit-vulnerable.sarif || true
+      
+      - name: Run Bandit on secure code
+        run: bandit -r secure/ -f sarif -o bandit-secure.sarif || true
+      
+      - name: Upload Bandit results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: bandit-vulnerable.sarif
+          category: bandit-vulnerable
+
+  semgrep:
+    name: Semgrep (OWASP Pattern Scanner)
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Semgrep on vulnerable code
+        run: semgrep --config=auto vulnerable/ --sarif --output=semgrep-vulnerable.sarif || true
+      
+      - name: Run Semgrep on secure code
+        run: semgrep --config=auto secure/ --sarif --output=semgrep-secure.sarif || true
+      
+      - name: Upload Semgrep results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep-vulnerable.sarif
+          category: semgrep-vulnerable
+
+  codeql:
+    name: CodeQL (GitHub Deep Analysis)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+          queries: security-extended
+      
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+      
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: codeql-python
